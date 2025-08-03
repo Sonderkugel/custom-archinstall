@@ -28,11 +28,6 @@ echo
 genfstab -U /mnt >> /mnt/etc/fstab
 uuid=$(cat /mnt/etc/fstab | grep ext4 | cut -f1)
 
-# Prompt for root password
-echo "Enter password for root:"
-read -r -s pwd
-echo
-
 # Prompt for timezone and make symlink to /etc/localtime
 echo "Enter timezone from /usr/share/zoneinfo/:"
 read -r timezone
