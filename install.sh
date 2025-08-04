@@ -51,7 +51,7 @@ passwd -R /mnt root
 
 arch-chroot /mnt bootctl install
 
-echo -e 'title Arch Linux\nlinux /vmlinuz-linux\ninitrd /initramfs-linux.img\noptions root=$uuid rw' > /mnt/boot/loader/entries/arch.conf
-echo -e 'title Arch Linux (fallback initramfs)\nlinux /vmlinuz-linux\ninitrd /initramfs-linux-fallback.img\noptions root=$uuid rw' > /mnt/boot/loader/entries/arch-fallback.conf
+echo -e 'title Arch Linux\nlinux /vmlinuz-linux\ninitrd /initramfs-linux.img\noptions root=${uuid} rw' > /mnt/boot/loader/entries/arch.conf
+echo -e 'title Arch Linux (fallback initramfs)\nlinux /vmlinuz-linux\ninitrd /initramfs-linux-fallback.img\noptions root=${uuid} rw' > /mnt/boot/loader/entries/arch-fallback.conf
 
 sed -i '1i default arch.conf' /mnt/boot/loader/loader.conf
