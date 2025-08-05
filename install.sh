@@ -11,9 +11,21 @@ read swapsize
 echo -n "Enter timezone from /usr/share/zoneinfo/ (e.g. Canada/Eastern, UTC):"
 read timezone
 echo -n "Enter hostname:"
-read hostname
+read -r hostname
 echo -n "Enter any additional packages to install, separated by spaces (Leave blank for none):"
 read packages
+echo -n "New password:"
+read -rs rootpwd
+echo -n "Retype new password:"
+read -rs rootpwdchk
+while [${rootpwd} != ${rootpwdchk}]; do
+    echo "Passwords do not match, try again"
+    echo -n "New password:"
+    read -rs rootpwd
+    echo -n "Retype new password:"
+    read -rs rootpwdchk
+done
+echo "Password accepted"
 
 # Create partition table, an EFI boot partition of specified size and a Linux filesystem which takes up the rest of the disk
 sfdisk ${disk} <<- EOF
@@ -60,7 +72,7 @@ arch-chroot /mnt systemctl enable vmtoolsd.service
 arch-chroot /mnt systemctl enable vmware-vmblock-fuse.service
 
 # create new password for root
-passwd -R /mnt root
+echo ${rootpwd} | passwd -sR /mnt root
 
 arch-chroot /mnt bootctl install
 
@@ -68,3 +80,5 @@ echo -e "title Arch Linux\nlinux /vmlinuz-linux\ninitrd /initramfs-linux.img\nop
 echo -e "title Arch Linux (fallback initramfs)\nlinux /vmlinuz-linux\ninitrd /initramfs-linux-fallback.img\noptions root=${uuid} rw" > /mnt/boot/loader/entries/arch-fallback.conf
 
 sed -i '1i default arch.conf' /mnt/boot/loader/loader.conf
+
+echo 'Installation finished'
