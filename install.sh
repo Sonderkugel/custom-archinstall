@@ -18,12 +18,14 @@ echo -n "New password:"
 read -rs rootpwd
 echo -n "Retype new password:"
 read -rs rootpwdchk
+echo
 while [${rootpwd} != ${rootpwdchk}]; do
     echo "Passwords do not match, try again"
     echo -n "New password:"
     read -rs rootpwd
     echo -n "Retype new password:"
     read -rs rootpwdchk
+    echo
 done
 echo "Password accepted"
 
