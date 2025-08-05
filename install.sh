@@ -4,8 +4,6 @@
 
 echo "Enter disk to partition (e.g. /dev/sdX):"
 read pdisk
-pdisk1=$pdisk"1"
-pdisk2=$pdisk"2"
 echo "Enter boot partition size in MiB (e.g. 512, 1024):"
 read bootsize
 fdisk ${pdisk} <<- fdiskcommands
@@ -28,12 +26,12 @@ fdisk ${pdisk} <<- fdiskcommands
 fdiskcommands
 
 # Format partitions
-mkfs.ext4 $pdisk2
-mkfs.fat -F 32 $pdisk1
+mkfs.ext4 ${pdisk}2
+mkfs.fat -F 32 ${pdisk}1
 
 # Mount partitions
-mount $pdisk2 /mnt
-mount --mkdir $pdisk1 /mnt/boot
+mount ${pdisk}2 /mnt
+mount --mkdir ${pdisk}1 /mnt/boot
 
 # Make swapfile
 echo "Enter size for the swapfile in GiB (e.g. 2, 4):"
