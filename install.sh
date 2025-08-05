@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Custom Arch Linux install script, meant for installing as a guest in VirtualBox
+# Custom Arch Linux install script, meant for installing as a guest in VMware
 
 echo "Enter disk to partition (e.g. /dev/sdX):"
 read pdisk
@@ -16,22 +16,24 @@ mkfs.fat -F 32 $pdisk1
 mount $pdisk2 /mnt
 mount --mkdir $pdisk1 /mnt/boot
 
+echo "Enter size for the swapfile in GiB:"
+read swapsize
 # Make swapfile
-mkswap -U clear --size 4G --file /mnt/swapfile
+mkswap -U clear --size ${swapsize}G --file /mnt/swapfile
 swapon /mnt/swapfile
 
 # Install kernel and necessary packages
-pacstrap -K /mnt base linux base-devel dosfstools e2fsprogs networkmanager vim man-db man-pages virtualbox-guest-utils git
+pacstrap -K /mnt base linux base-devel dosfstools e2fsprogs networkmanager vim man-db man-pages git open-vm-tools
 echo
 
 # Make fstab
 genfstab -U /mnt >> /mnt/etc/fstab
 uuid=$(cat /mnt/etc/fstab | grep ext4 | cut -f1)
 
-# Prompt for timezone and make symlink to /etc/localtime
+# Prompt for timezone and make symlink to /mnt/etc/localtime
 echo "Enter timezone from /usr/share/zoneinfo/:"
 read -r timezone
-ln -sf /mnt/usr/share/zoneinfo/$timezone /etc/localtime
+ln -sf /mnt/usr/share/zoneinfo/$timezone /mnt/etc/localtime
 
 # Update system clock
 arch-chroot /mnt hwclock --systohc
@@ -44,7 +46,8 @@ echo 'arch-vm' > /mnt/etc/hostname
 
 # Enable necessary services
 arch-chroot /mnt systemctl enable NetworkManager.service
-arch-chroot /mnt systemctl enable vboxservice.service
+arch-chroot /mnt systemctl enable vmtoolsd.service
+arch-chroot /mnt systemctl enable vmware-vmblock-fuse.service
 
 # create new password for root
 passwd -R /mnt root
