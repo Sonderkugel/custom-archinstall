@@ -6,7 +6,9 @@ echo "Enter disk to partition (e.g. /dev/sdX):"
 read pdisk
 pdisk1=$pdisk"1"
 pdisk2=$pdisk"2"
-(echo "g"; echo "n"; echo "1"; echo; echo "+512M"; echo "n"; echo "2"; echo; echo; echo "t"; echo "1"; echo "uefi"; echo "t"; echo "2"; echo "23"; echo "w") | fdisk $pdisk
+echo "Enter boot partition size in MiB (e.g. 512, 1024):"
+read bootsize
+(echo "g"; echo "n"; echo "1"; echo; echo "+${bootsize}M"; echo "n"; echo "2"; echo; echo; echo "t"; echo "1"; echo "uefi"; echo "t"; echo "2"; echo "23"; echo "w") | fdisk $pdisk
 
 # Format partitions
 mkfs.ext4 $pdisk2
@@ -16,14 +18,16 @@ mkfs.fat -F 32 $pdisk1
 mount $pdisk2 /mnt
 mount --mkdir $pdisk1 /mnt/boot
 
-echo "Enter size for the swapfile in GiB:"
-read swapsize
 # Make swapfile
+echo "Enter size for the swapfile in GiB (e.g. 2, 4):"
+read swapsize
 mkswap -U clear --size ${swapsize}G --file /mnt/swapfile
 swapon /mnt/swapfile
 
-# Install kernel and necessary packages
-pacstrap -K /mnt base linux base-devel dosfstools e2fsprogs networkmanager vim man-db man-pages git open-vm-tools
+# Ask for additional packages, then install kernel and necessary packages
+echo "Enter any additional packages to install, separated by spaces (Leave blank for none):"
+read instpacs
+pacstrap -K /mnt base linux base-devel dosfstools e2fsprogs networkmanager vim man-db man-pages git open-vm-tools ${instpacs}
 echo
 
 # Make fstab
@@ -31,7 +35,7 @@ genfstab -U /mnt >> /mnt/etc/fstab
 uuid=$(cat /mnt/etc/fstab | grep ext4 | cut -f1)
 
 # Prompt for timezone and make symlink to /mnt/etc/localtime
-echo "Enter timezone from /usr/share/zoneinfo/:"
+echo "Enter timezone from /usr/share/zoneinfo/ (e.g. Canada/Eastern, UTC):"
 read -r timezone
 ln -sf /mnt/usr/share/zoneinfo/$timezone /mnt/etc/localtime
 
