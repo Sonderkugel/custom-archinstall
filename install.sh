@@ -16,13 +16,15 @@ echo -n "Enter any additional packages to install, separated by spaces (Leave bl
 read packages
 echo -n "New password:"
 read -rs rootpwd
+echo
 echo -n "Retype new password:"
 read -rs rootpwdchk
 echo
-while [${rootpwd} != ${rootpwdchk}]; do
+while [ ${rootpwd} != ${rootpwdchk} ]; do
     echo "Passwords do not match, try again"
     echo -n "New password:"
     read -rs rootpwd
+    echo
     echo -n "Retype new password:"
     read -rs rootpwdchk
     echo
