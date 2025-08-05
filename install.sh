@@ -8,7 +8,24 @@ pdisk1=$pdisk"1"
 pdisk2=$pdisk"2"
 echo "Enter boot partition size in MiB (e.g. 512, 1024):"
 read bootsize
-(echo "g"; echo "n"; echo "1"; echo; echo "+${bootsize}M"; echo "n"; echo "2"; echo; echo; echo "t"; echo "1"; echo "uefi"; echo "t"; echo "2"; echo "23"; echo "w") | fdisk $pdisk
+fdisk ${pdisk} <<- fdiskcommands
+    g
+    n
+    1
+
+    +${bootsize}M
+    n
+    2
+
+
+    t
+    1
+    uefi
+    t
+    2
+    23
+    w
+fdiskcommands
 
 # Format partitions
 mkfs.ext4 $pdisk2
