@@ -29,12 +29,16 @@ fi
 
 read -rp "Enter any additional packages to install, separated by spaces (Leave blank for none): " packages
 
-read -srp "New password: " rootpw; echo
-read -srp "Retype new password: " rootpwck; echo
+read -srp "New password: " rootpw
+echo
+read -srp "Retype new password: " rootpwck
+echo
 while [ ${rootpw} != ${rootpwck} ]; do
     echo "Passwords do not match, try again"
-    read -srp "New password: " rootpw; echo
-    read -srp "Retype new password: " rootpwck; echo
+    read -srp "New password: " rootpw
+    echo
+    read -srp "Retype new password: " rootpwck
+    echo
 done
 echo "Password accepted"
 
