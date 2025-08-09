@@ -2,39 +2,46 @@
 
 # Custom Arch Linux install script, meant for installing as a guest in VMware
 
-echo -n "Enter disk to partition (e.g. /dev/sdX):"
-read disk
-echo -n "Enter boot partition size in MiB (e.g. 512, 1024):"
-read bootsize
-echo -n "Enter size for the swapfile in GiB (e.g. 2, 4):"
-read swapsize
-echo -n "Enter timezone from /usr/share/zoneinfo/ (e.g. Canada/Eastern, UTC):"
-read timezone
-echo -n "Enter hostname:"
-read -r hostname
-echo -n "Enter any additional packages to install, separated by spaces (Leave blank for none):"
-read packages
-echo -n "New password:"
-read -rs rootpwd
-echo
-echo -n "Retype new password:"
-read -rs rootpwdchk
-echo
-while [ ${rootpwd} != ${rootpwdchk} ]; do
+read -rp "Enter disk to partition [/dev/sda] " disk
+if [ -z ${disk} ]; then
+    disk=/dev/sda
+fi
+
+read -rp "Enter boot partition size [512M] " bootsize
+if [ -z ${bootsize} ]; then
+    bootsize=512M
+fi
+
+read -rp "Enter size for the swapfile [4G] " swapsize
+if [ -z ${swapsize} ]; then
+    swapsize=4G
+fi
+
+read -rp "Enter timezone from /usr/share/zoneinfo/ [UTC] " timezone
+if [ -z ${timezone} ]; then
+    timezone=UTC
+fi
+
+read -rp "Enter hostname [arch-vm] " hostname
+if [ -z ${hostname} ]; then
+    hostname=arch-vm
+fi
+
+read -rp "Enter any additional packages to install, separated by spaces (Leave blank for none): " packages
+
+read -rps "New password: " rootpw
+read -rps "Retype new password: " rootpwck
+while [ ${rootpw} != ${rootpwck} ]; do
     echo "Passwords do not match, try again"
-    echo -n "New password:"
-    read -rs rootpwd
-    echo
-    echo -n "Retype new password:"
-    read -rs rootpwdchk
-    echo
+    read -rps "New password: " rootpw
+    read -rps "Retype new password: " rootpwck
 done
 echo "Password accepted"
 
 # Create partition table, an EFI boot partition of specified size and a Linux filesystem which takes up the rest of the disk
 sfdisk ${disk} <<- EOF
     label: gpt
-    size=${bootsize}M, type=U
+    size=${bootsize}, type=U
     type=L
 EOF
 
@@ -47,7 +54,7 @@ mount ${disk}2 /mnt
 mount --mkdir ${disk}1 /mnt/boot
 
 # Make swapfile
-mkswap -U clear --size ${swapsize}G --file /mnt/swapfile
+mkswap -U clear --size ${swapsize} --file /mnt/swapfile
 swapon /mnt/swapfile
 
 # Install kernel and necessary packages
@@ -76,7 +83,7 @@ arch-chroot /mnt systemctl enable vmtoolsd.service
 arch-chroot /mnt systemctl enable vmware-vmblock-fuse.service
 
 # create new password for root
-echo ${rootpwd} | passwd -sR /mnt root
+echo ${rootpw} | passwd -sR /mnt root
 
 arch-chroot /mnt bootctl install
 
