@@ -67,7 +67,7 @@ echo
 
 # Make fstab
 genfstab -U /mnt >> /mnt/etc/fstab
-uuid=$(cat /mnt/etc/fstab | grep ext4 | cut -f1)
+uuid=$(blkid -o export ${disk}2 | awk '/^UUID/')
 
 # Set timezone with symlink to /mnt/etc/localtime
 ln -sf /mnt/usr/share/zoneinfo/${timezone} /mnt/etc/localtime
