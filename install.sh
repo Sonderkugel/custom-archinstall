@@ -36,7 +36,7 @@ while [[ ${newrootpw} =~ [^yYnN] ]]; do
     read -rp "Would you like to set a root password? [Y/n] " newrootpw
 done
 
-if [[ ${newrootpw} =~ [^nN] ]]; then
+if [[ ${newrootpw} =~ [yY] ]] || [ -z ${newrootpw }]; then
     read -srp "New password: " rootpw
     echo
     read -srp "Retype new password: " rootpwck
