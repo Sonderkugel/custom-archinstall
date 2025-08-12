@@ -30,6 +30,29 @@ fi
 read -rp "Enter any additional packages to install, separated by spaces (Leave blank for none): " packages
 
 # Create a new non-root user
+read -rp "Would you like to set a root password? [Y/n] " newrootpw
+while [[ ${newrootpw} =~ [^yYnN] ]]; do
+    echo "Invalid answer, try again"
+    read -rp "Would you like to set a root password? [Y/n] " newrootpw
+done
+
+if [[ ${newrootpw} =~ [^nN] ]]; then
+    read -srp "New password: " rootpw
+    echo
+    read -srp "Retype new password: " rootpwck
+    echo
+    while [ ${rootpw} != ${rootpwck} ]; do
+        echo "Passwords do not match, try again"
+        read -srp "New password: " rootpw
+        echo
+        read -srp "Retype new password: " rootpwck
+        echo
+    done
+    echo "Password accepted"
+fi
+
+
+# Create a new non-root user
 read -rp "Would you like to create a new non-root user? [y/N] " newuser
 while [[ ${newuser} =~ [^yYnN] ]]; do
     echo "Invalid answer, try again"
@@ -69,18 +92,7 @@ if [[ ${newuser} =~ [yY] ]]; then
     
 fi
 
-read -srp "New password: " rootpw
-echo
-read -srp "Retype new password: " rootpwck
-echo
-while [ ${rootpw} != ${rootpwck} ]; do
-    echo "Passwords do not match, try again"
-    read -srp "New password: " rootpw
-    echo
-    read -srp "Retype new password: " rootpwck
-    echo
-done
-echo "Password accepted"
+
 
 # Create partition table, an EFI boot partition of specified size and a Linux filesystem which takes up the rest of the disk
 sfdisk ${disk} <<- EOF
@@ -127,10 +139,12 @@ arch-chroot /mnt systemctl enable vmtoolsd.service
 arch-chroot /mnt systemctl enable vmware-vmblock-fuse.service
 
 # create new password for root
-echo ${rootpw} | arch-chroot /mnt passwd -s /mnt root
+if [ -!z ${newrootpw} ]; then
+    echo ${rootpw} | arch-chroot /mnt passwd -s root
+if
 
 # Create new password for non-root user, if option selected
-if [[ ${newuser} =~ [yY] ]]; then
+if [ -!z ${newuser} ]; then
     echo ${userpw} | arch-chroot /mnt passwd -s ${username}
 fi
 
