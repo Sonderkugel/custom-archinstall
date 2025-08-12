@@ -87,7 +87,7 @@ arch-chroot /mnt systemctl enable vmtoolsd.service
 arch-chroot /mnt systemctl enable vmware-vmblock-fuse.service
 
 # create new password for root
-echo ${rootpw} | passwd -sR /mnt root
+echo ${rootpw} | arch-chroot /mnt passwd -sR /mnt root
 
 arch-chroot /mnt bootctl install
 
