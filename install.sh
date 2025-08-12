@@ -37,6 +37,51 @@ while [[ ${newrootpw} =~ [^yYnN] ]]; do
 done
 
 if [[ ${newrootpw} =~ [yY] ]] || [ -z ${newrootpw }]; then
+read -rp "Would you like to create a new non-root user? [y/N] " newuser
+while [[ ${newuser} =~ [^yYnN] ]]; do
+    echo "Invalid answer, try again"
+    read -rp "Would you like to create a new non-root user? [y/N] " newuser
+done
+
+if [[ ${newuser} =~ [yY] ]]; then
+
+    # Ask for username, if nothing entered set to "user"
+    read -rp "Enter username for non-root user [user] " username
+    if [ -z ${username} ]; then
+        username=user
+    fi
+    
+    # Ask if a password for the new user is wanted
+    read -rp "Set password for ${username}? [y/N] " setuserpw
+    while [[ ${setuserpw} =~ [^yYnN] ]]; do
+        echo "Invalid answer, try again"
+        read -rp "Set password for ${username}? [y/N] " setuserpw
+    done
+
+    # Set new password for the user
+    if [[ ${setuserpw} =~ [yY] ]]; then
+        read -srp "New password: " userpw
+        echo
+        read -srp "Retype new password: " userpwck
+        echo
+        while [ ${userpw} != ${userpwck} ]; do
+            echo "Passwords do not match, try again"
+            read -srp "New password: " userpw
+            echo
+            read -srp "Retype new password: " userpwck
+            echo
+        done
+        echo "Password accepted"
+    fi
+    
+fi
+
+read -srp "New password: " rootpw
+echo
+read -srp "Retype new password: " rootpwck
+echo
+while [ ${rootpw} != ${rootpwck} ]; do
+    echo "Passwords do not match, try again"
     read -srp "New password: " rootpw
     echo
     read -srp "Retype new password: " rootpwck
