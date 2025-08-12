@@ -29,7 +29,7 @@ fi
 
 read -rp "Enter any additional packages to install, separated by spaces (Leave blank for none): " packages
 
-# Create a new non-root user
+# Set root password
 read -rp "Would you like to set a root password? [Y/n] " newrootpw
 while [[ ${newrootpw} =~ [^yYnN] ]]; do
     echo "Invalid answer, try again"
