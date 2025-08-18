@@ -138,12 +138,12 @@ arch-chroot /mnt systemctl enable vmtoolsd.service
 arch-chroot /mnt systemctl enable vmware-vmblock-fuse.service
 
 # create new password for root
-if [ -!z ${newrootpw} ]; then
+if [ -n ${newrootpw} ]; then
     echo ${rootpw} | arch-chroot /mnt passwd -s root
 if
 
 # Create new password for non-root user, if option selected
-if [ -!z ${newuser} ]; then
+if [ -n ${newuser} ]; then
     echo ${userpw} | arch-chroot /mnt passwd -s ${username}
 fi
 
