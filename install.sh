@@ -53,8 +53,8 @@ mkext4LVM() {
     partitions=($(lsblk --list --paths | awk '$6 = /part/ { print $1 }'))
 
     # Get size of partitions to use for LVM, half for root and a quarter for home
-    rootsize=$(lsblk --list --paths | awk '$1 = /${partitions[1]}/ { print $4 / 2})
-    homesize=$(lsblk --list --paths | awk '$1 = /${partitions[1]}/ { print $4 / 4})
+    rootsize=$(lsblk --list --paths | awk '$1 = /${partitions[1]}/ { print $4 / 2 })
+    homesize=$(lsblk --list --paths | awk '$1 = /${partitions[1]}/ { print $4 / 4 })
 
     # Create physical volume
     pvcreate ${partitions[1]}
