@@ -86,6 +86,34 @@ ext4LVM-filesystem() {
     mkswap --size ${swapsize} --uuid clear --file /mnt/.swap/swapfile
     swapon /mnt/.swap/swapfile
 }
+makeuki() {
+    # Make root.conf in cmdline.d
+    mkdir /mnt/etc/cmdline.d
+    echo 'root=${uuid} rw' > /mnt/cmdline.d/root.conf
+    
+    # Add subvolume name if filesystem is btrfs
+    if [(lsblk --noheadings --output FSTYPE ${partitions[2]}) = btrfs ]; do
+        echo 'rootflags=subvol=/@' >> /mnt/cmdline.d/root.conf
+    done
+
+    # Edit linux preset in mkinitcpio.d
+    sed --in-place /default_uki/s/*/default_uki="/boot/efi/EFI/arch-linux.efi"/ /mnt/etc/mkinitcpio.d/linux.preset
+    sed --in-place /default_image/s/^/#/ /mnt/etc/mkinitcpio.d/linux.preset
+
+    # And the fallback
+    sed --in-place /fallback_uki/s/*/fallback_uki="/boot/efi/EFI/arch-linux-fallback.efi"/ /mnt/etc/mkinitcpio.d/linux.preset
+    sed --in-place /fallback_image/s/^/#/ /mnt/etc/mkinitcpio.d/linux.preset
+
+    # Run mkinitcpio
+    mkdir --parents /mnt/boot/efi/EFI/Linux
+    mkinitcpio --preset linux
+
+    # Remove leftover initramfs images
+    rm /mnt/boot/initramfs-*.img
+
+    # Create boot entry with efibootmgr
+    efibootmgr --create --disk ${disk} --part 1 --label "Arch Linux" --loader '\EFI\Linux\arch-linux.efi' --unicode
+}
 
 read -rp "Enter disk to partition [/dev/sda] " disk
 if [ -z ${disk} ]; then
@@ -185,13 +213,13 @@ genfstab -U /mnt >> /mnt/etc/fstab
 uuid=$(blkid -o export ${disk}2 | awk '/^UUID/')
 
 # Set timezone with symlink to /mnt/etc/localtime
-ln -sf /mnt/usr/share/zoneinfo/${timezone} /mnt/etc/localtime
+ln --symbolic --force /mnt/usr/share/zoneinfo/${timezone} /mnt/etc/localtime
 
 # Update system clock
 arch-chroot /mnt hwclock --systohc
 
 # Generate locale and set hostname
-sed -i 's/#en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /mnt/etc/locale.gen
+sed --in-place 's/#en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /mnt/etc/locale.gen
 arch-chroot /mnt locale-gen
 echo LANG=en_US.UTF-8 > /mnt/etc/locale.conf
 echo ${hostname} > /mnt/etc/hostname
@@ -203,20 +231,15 @@ arch-chroot /mnt systemctl enable vmware-vmblock-fuse.service
 
 # create new password for root
 if [ -n ${newrootpw} ]; then
-    echo ${rootpw} | arch-chroot /mnt passwd -s root
+    echo ${rootpw} | arch-chroot /mnt passwd --stdin root
 if
 
 # Create new password for non-root user, if option selected
 if [ -n ${newuser} ]; then
-    echo ${userpw} | arch-chroot /mnt passwd -s ${username}
+    echo ${userpw} | arch-chroot /mnt passwd --stdin ${username}
 fi
 
-# Set up systemd-bootd
-arch-chroot /mnt bootctl install
-
-echo -e "title Arch Linux\nlinux /vmlinuz-linux\ninitrd /initramfs-linux.img\noptions root=${uuid} rw" > /mnt/boot/loader/entries/arch.conf
-echo -e "title Arch Linux (fallback initramfs)\nlinux /vmlinuz-linux\ninitrd /initramfs-linux-fallback.img\noptions root=${uuid} rw" > /mnt/boot/loader/entries/arch-fallback.conf
-
-sed -i '1i default arch.conf' /mnt/boot/loader/loader.conf
+# Create UKI, modify mkinitcpio, and add entry to efibootmgr
+makeuki()
 
 echo 'Installation finished'
