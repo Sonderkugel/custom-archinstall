@@ -2,6 +2,35 @@
 
 # Custom Arch Linux install script, meant for installing as a guest in VMware
 
+makeuki() {
+    # Make root.conf in cmdline.d
+    mkdir /mnt/etc/cmdline.d
+    echo 'root=${uuid} rw' > /mnt/cmdline.d/root.conf
+    
+    # Add subvolume name if filesystem is btrfs
+    if [(lsblk --noheadings --output FSTYPE ${partitions[2]}) = btrfs ]; do
+        echo 'rootflags=subvol=/@' >> /mnt/cmdline.d/root.conf
+    done
+
+    # Edit linux preset in mkinitcpio.d
+    sed --in-place /default_uki/s/*/default_uki="/boot/efi/EFI/arch-linux.efi"/ /mnt/etc/mkinitcpio.d/linux.preset
+    sed --in-place /default_image/s/^/#/ /mnt/etc/mkinitcpio.d/linux.preset
+
+    # And the fallback
+    sed --in-place /fallback_uki/s/*/fallback_uki="/boot/efi/EFI/arch-linux-fallback.efi"/ /mnt/etc/mkinitcpio.d/linux.preset
+    sed --in-place /fallback_image/s/^/#/ /mnt/etc/mkinitcpio.d/linux.preset
+
+    # Run mkinitcpio
+    mkdir --parents /mnt/boot/efi/EFI/Linux
+    mkinitcpio --preset linux
+
+    # Remove leftover initramfs images
+    rm /mnt/boot/initramfs-*.img
+
+    # Create boot entry with efibootmgr
+    efibootmgr --create --disk ${disk} --part 1 --label "Arch Linux" --loader '\EFI\Linux\arch-linux.efi' --unicode
+}
+
 read -rp "Enter disk to partition [/dev/sda] " disk
 if [ -z ${disk} ]; then
     disk=/dev/sda
@@ -91,8 +120,6 @@ if [[ ${newuser} =~ [yY] ]]; then
     
 fi
 
-
-
 # Create partition table, an EFI boot partition of specified size and a Linux filesystem which takes up the rest of the disk
 sfdisk ${disk} <<- EOF
     label: gpt
@@ -147,12 +174,7 @@ if [ -n ${newuser} ]; then
     echo ${userpw} | arch-chroot /mnt passwd --stdin ${username}
 fi
 
-# Set up systemd-bootd
-arch-chroot /mnt bootctl install
-
-echo -e "title Arch Linux\nlinux /vmlinuz-linux\ninitrd /initramfs-linux.img\noptions root=${uuid} rw" > /mnt/boot/loader/entries/arch.conf
-echo -e "title Arch Linux (fallback initramfs)\nlinux /vmlinuz-linux\ninitrd /initramfs-linux-fallback.img\noptions root=${uuid} rw" > /mnt/boot/loader/entries/arch-fallback.conf
-
-sed -i '1i default arch.conf' /mnt/boot/loader/loader.conf
+# Create UKI, modify mkinitcpio, and add entry to efibootmgr
+makeuki()
 
 echo 'Installation finished'
