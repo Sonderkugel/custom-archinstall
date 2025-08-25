@@ -121,13 +121,13 @@ genfstab -U /mnt >> /mnt/etc/fstab
 uuid=$(blkid -o export ${disk}2 | awk '/^UUID/')
 
 # Set timezone with symlink to /mnt/etc/localtime
-ln -sf /mnt/usr/share/zoneinfo/${timezone} /mnt/etc/localtime
+ln --symbolic --force /mnt/usr/share/zoneinfo/${timezone} /mnt/etc/localtime
 
 # Update system clock
 arch-chroot /mnt hwclock --systohc
 
 # Generate locale and set hostname
-sed -i 's/#en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /mnt/etc/locale.gen
+sed --in-place 's/#en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /mnt/etc/locale.gen
 arch-chroot /mnt locale-gen
 echo LANG=en_US.UTF-8 > /mnt/etc/locale.conf
 echo ${hostname} > /mnt/etc/hostname
@@ -139,12 +139,12 @@ arch-chroot /mnt systemctl enable vmware-vmblock-fuse.service
 
 # create new password for root
 if [ -n ${newrootpw} ]; then
-    echo ${rootpw} | arch-chroot /mnt passwd -s root
+    echo ${rootpw} | arch-chroot /mnt passwd --stdin root
 if
 
 # Create new password for non-root user, if option selected
 if [ -n ${newuser} ]; then
-    echo ${userpw} | arch-chroot /mnt passwd -s ${username}
+    echo ${userpw} | arch-chroot /mnt passwd --stdin ${username}
 fi
 
 # Set up systemd-bootd
