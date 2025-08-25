@@ -2,7 +2,7 @@
 
 # Custom Arch Linux install script, meant for installing as a guest in VMware
 
-btrfs-filesystem() {
+mkbtrfs() {
     # Create partition table with an ESP of chosen size and a Linux filesystem which takes up the rest of the disk
     sfdisk ${disk} <<- EOF
         label: gpt
@@ -41,7 +41,7 @@ btrfs-filesystem() {
     swapon /mnt/.swap/swapfile
 }
 
-ext4LVM-filesystem() {
+mkext4LVM() {
     # Create partition table with an ESP of chosen size and a Linux filesystem which takes up the rest of the disk
     sfdisk ${disk} <<- EOF
         label: gpt
@@ -86,13 +86,14 @@ ext4LVM-filesystem() {
     mkswap --size ${swapsize} --uuid clear --file /mnt/.swap/swapfile
     swapon /mnt/.swap/swapfile
 }
+
 makeuki() {
     # Make root.conf in cmdline.d
     mkdir /mnt/etc/cmdline.d
-    echo 'root=${uuid} rw' > /mnt/cmdline.d/root.conf
+    echo 'root=UUID=${uuid} rw' > /mnt/cmdline.d/root.conf
     
     # Add subvolume name if filesystem is btrfs
-    if [(lsblk --noheadings --output FSTYPE ${partitions[2]}) = btrfs ]; do
+    if [(lsblk --noheadings --output FSTYPE ${partitions[1]}) = btrfs ]; do
         echo 'rootflags=subvol=/@' >> /mnt/cmdline.d/root.conf
     done
 
@@ -114,6 +115,8 @@ makeuki() {
     # Create boot entry with efibootmgr
     efibootmgr --create --disk ${disk} --part 1 --label "Arch Linux" --loader '\EFI\Linux\arch-linux.efi' --unicode
 }
+
+########## OPTIONS ##########
 
 read -rp "Enter disk to partition [/dev/sda] " disk
 if [ -z ${disk} ]; then
@@ -204,13 +207,21 @@ if [[ ${newuser} =~ [yY] ]]; then
     
 fi
 
+########## INSTALLATION ##########
+
+# If btrfs chosen use that, otherwise use ext4 with LVM
+if [${usebtrfs} = true]; then
+    mkbtrfs()
+else
+    mkext4LVM()
+fi
+
 # Install kernel and necessary packages
 pacstrap -K /mnt base linux base-devel dosfstools e2fsprogs networkmanager vim man-db man-pages git open-vm-tools ${packages}
-echo
 
 # Make fstab
 genfstab -U /mnt >> /mnt/etc/fstab
-uuid=$(blkid -o export ${disk}2 | awk '/^UUID/')
+uuid=$(lsblk --noheadings --output UUID ${partitions[1]})
 
 # Set timezone with symlink to /mnt/etc/localtime
 ln --symbolic --force /mnt/usr/share/zoneinfo/${timezone} /mnt/etc/localtime
