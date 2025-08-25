@@ -2,6 +2,45 @@
 
 # Custom Arch Linux install script, meant for installing as a guest in VMware
 
+btrfs-filesystem() {
+    # Create partition table with an ESP of chosen size and a Linux filesystem which takes up the rest of the disk
+    sfdisk ${disk} <<- EOF
+        label: gpt
+        size=${bootsize}, type=U
+        type=L
+    EOF
+
+    # Create array of partitions
+    partitions=($(lsblk --list --paths | awk '$6 = /part/ { print $1 }'))
+
+    # Format partitions
+    mkfs.fat -F 32 ${partitions[0]}
+    mkfs.btrfs ${partitions[1]}
+
+    # Mount top-level subvolume
+    mount ${partitions[1]} /mnt
+
+    # Make subvolumes
+    btrfs subvolume create /@ /@home /@snapshots /@var_log /@swap
+
+    # Unmount top-level subvolume
+    umount /mnt
+
+    # Mount subvolumes
+    mount ${partitions[1]} /mnt --options subvol=/@
+    mount --mkdir ${partitions[1]} /mnt/home --options subvol=/@home
+    mount --mkdir ${partitions[1]} /mnt/.snapshots --options subvol=/@snapshots
+    mount --mkdir ${partitions[1]} /mnt/var/log --options subvol=/@var_log
+    mount --mkdir ${partitions[1]} /mnt/.swap --options subvol=/@swap
+
+    # Mount ESP
+    mount --mkdir ${partitions[0]} /mnt/boot/efi
+
+    # Make and activate swapfile
+    btrfs filesystem mkswapfile --size ${swapsize} --uuid clear /mnt/.swap/swapfile
+    swapon /mnt/.swap/swapfile
+}
+
 read -rp "Enter disk to partition [/dev/sda] " disk
 if [ -z ${disk} ]; then
     disk=/dev/sda
