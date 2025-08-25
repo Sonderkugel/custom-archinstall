@@ -41,6 +41,52 @@ btrfs-filesystem() {
     swapon /mnt/.swap/swapfile
 }
 
+ext4LVM-filesystem() {
+    # Create partition table with an ESP of chosen size and a Linux filesystem which takes up the rest of the disk
+    sfdisk ${disk} <<- EOF
+        label: gpt
+        size=${bootsize}, type=U
+        type=L
+    EOF
+
+    # Create array of partitions
+    partitions=($(lsblk --list --paths | awk '$6 = /part/ { print $1 }'))
+
+    # Get size of partitions to use for LVM, half for root and a quarter for home
+    rootsize=$(lsblk --list --paths | awk '$1 = /${partitions[1]}/ { print $4 / 2})
+    homesize=$(lsblk --list --paths | awk '$1 = /${partitions[1]}/ { print $4 / 4})
+
+    # Create physical volume
+    pvcreate ${partitions[1]}
+
+    # Create volume group
+    vgcreate vg1 ${partitions[1]}
+    
+    # Create logical volumes
+    lvcreate --size ${rootsize} --name root vg1
+    lvcreate --size ${homesize} --name home vg1
+
+    # Format partitions
+    mkfs.fat -F 32 ${partitions[0]}
+    mkfs.ext4 /dev/vg1/root
+    mkfs.ext4 /dev/vg1/home
+
+    # Mount logical volumes
+    mount /dev/vg1/root /mnt
+    mount --mkdir /dev/vg1/home /mnt/home
+
+    # Mount ESP
+    mount --mkdir ${partitions[0]} /mnt/boot/efi
+
+    # Add lvm2 hook to mkinitcpio
+    sed --in-place /^HOOKS/s/block/'block lvm2'/ /mnt/etc/mkinitcpio.conf
+
+    # Make and activate swapfile
+    mkdir /mnt/.swap
+    mkswap --size ${swapsize} --uuid clear --file /mnt/.swap/swapfile
+    swapon /mnt/.swap/swapfile
+}
+
 read -rp "Enter disk to partition [/dev/sda] " disk
 if [ -z ${disk} ]; then
     disk=/dev/sda
@@ -129,27 +175,6 @@ if [[ ${newuser} =~ [yY] ]]; then
     fi
     
 fi
-
-
-
-# Create partition table, an EFI boot partition of specified size and a Linux filesystem which takes up the rest of the disk
-sfdisk ${disk} <<- EOF
-    label: gpt
-    size=${bootsize}, type=U
-    type=L
-EOF
-
-# Format partitions
-mkfs.ext4 ${disk}2
-mkfs.fat -F 32 ${disk}1
-
-# Mount partitions
-mount ${disk}2 /mnt
-mount --mkdir ${disk}1 /mnt/boot
-
-# Make swapfile
-mkswap -U clear --size ${swapsize} --file /mnt/swapfile
-swapon /mnt/swapfile
 
 # Install kernel and necessary packages
 pacstrap -K /mnt base linux base-devel dosfstools e2fsprogs networkmanager vim man-db man-pages git open-vm-tools ${packages}
